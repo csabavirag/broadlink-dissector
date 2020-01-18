@@ -39,3 +39,6 @@ _**Option 2**_: From a rooted Android device, where the tcpdump is also availabl
 
 `adb shell su -c tcpdump -i any -s0 -w - "host 192.168.1.100" | /Applications/Wireshark.app/Contents/MacOS/Wireshark -k -i -`
 
+### Analyze the captured packets and use the dissector
+
+Let's look for the AES key. The first authentication is always done with the pre-set encryption keys and the client sends the auth request (command=0x65) to the device. The device responds back to this request and in the auth response (command=0x3e9) there is the AES key which is used in any further communication.
