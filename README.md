@@ -5,7 +5,7 @@ Wireshark LUA dissector for Broadlink protocol
 Everything has started with an RGBW Light bulb from Aliexpress. I configured the bulbs with their software and started using them, but since I alread had some sort of Home Assistant setup for few gadgets, I decided to search for other capabilities. Unfortunately these bulbs have never been mentioned anywhere else though.
 It was fairly easy to figure out, the bulbs are using Broadlink protocol to communicate.
 
-Then I found [broadlink-mqtt](https://github.com/eschava/broadlink-mqtt), a nice library which supports couple of Broadlink devices, but mine. Thanks to [the blog](https://blog.ipsumdomus.com/broadlink-smart-home-devices-complete-protocol-hack-bc0b4b397af1) and its very decent details of the protocol, I decided to write a Wireshark "plugin", so called dissector to see what kind of communication travels between my bulbs and the controller in the hope to be able extend the broadlink-mqtt library to support my bulbs. And having them integrated with Home Assistant.
+Then I found [broadlink-mqtt](https://github.com/eschava/broadlink-mqtt), a nice library which supports couple of Broadlink devices, but mine. Thanks to [the blog](https://blog.ipsumdomus.com/broadlink-smart-home-devices-complete-protocol-hack-bc0b4b397af1) and its very decent details of the protocol, I decided to write a Wireshark "plugin", so called dissector to see what kind of communication travels between my bulbs and the controller app in the hope to be able extend the broadlink-mqtt library to support my bulbs. And having them integrated with Home Assistant.
 
 Wireshark supports dissectors written in C or in LUA languages. For me, LUA seemed to be easier to achieve the goal.
 
@@ -41,4 +41,24 @@ _**Option 2**_: From a rooted Android device, where the tcpdump is also availabl
 
 ### Analyze the captured packets and use the dissector
 
-Let's look for the AES key. The first authentication is always done with the pre-set encryption keys and the client sends the auth request (command=0x65) to the device. The device responds back to this request and in the auth response (command=0x3e9) there is the AES key which is used in any further communication.
+Let's look for the AES key. The first authentication is always done with the pre-set encryption keys and the client sends the auth request (command=0x65) to the device. The device responds back to this request and in the auth response (command=0x3e9) there is the AES key which is used in any further communication. To get to these packets, filter for these packets with `broadlink.flags.command == 0x65 || broadlink.flags.command == 0x3e9`.
+
+![image](https://user-images.githubusercontent.com/10976654/72676302-0f9efa00-3a90-11ea-833f-cd80314a32a6.png)
+
+If the AES key is successfully extracted from the payload, set it in the protocol preferences. 
+
+![image](https://user-images.githubusercontent.com/10976654/72676333-715f6400-3a90-11ea-9020-9dcd360b2deb.png)
+
+With the new AES key saved, the following packets can be decrypted. Now filter the capture for command/response (`broadlink.flags.command == 0x6a || broadlink.flags.command == 0x3ee`)
+
+![image](https://user-images.githubusercontent.com/10976654/72676510-26dee700-3a92-11ea-8ff2-31ac74a8e74b.png)
+
+And see the response in the next packet
+
+![image](https://user-images.githubusercontent.com/10976654/72676530-76bdae00-3a92-11ea-9f30-9f4e08231827.png)
+
+
+## Conclusion
+I have no other types of Broadlink device (such as RM2*, A1 etc), only these bulbs (devID: 0x60C8) so could not verify if the dissector works properly with other models, but I believe the plugin can be easily extended/modified for others.
+
+Feel free to adjust, fork and use for your own benefit.
